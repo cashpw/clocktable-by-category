@@ -117,7 +117,6 @@ Based on `org-clock-report'."
         (duration (org-duration-from-minutes minutes)))
     (insert (s-lex-format "| |${indent}${headline} | ${shift-cell} ${duration} |\n"))))
 
-
 (defun clocktable-by-category--insert-category (category entries merge-duplicate-headlines)
   "Insert a row of ENTRIES for CATEGORY.
 
@@ -140,13 +139,15 @@ Based on `org-clock-report'."
                                                 minutes))
                                            0
                                            entries)))
-              (setq total (+ total minutes))
+              (when (= level 1)
+                (setq total (+ total minutes)))
               (clocktable-by-category--insert-row level
                                                   headline
                                                   minutes))))
       (cl-dolist (entry entries)
         (cl-destructuring-bind (level headline _ _ minutes _) entry
-          (setq total (+ total minutes))
+          (when (= level 1)
+            (setq total (+ total minutes)))
           (clocktable-by-category--insert-row level
                                               headline
                                               minutes))))
@@ -192,8 +193,11 @@ entries from `org-clock-get-table-data'."
 (defun clocktable-by-category--sum-durations (clock-data)
   "Return the total minutes logged for all entries in CLOCK-DATA."
   (seq-reduce (lambda (total-minutes entry)
-                (cl-destructuring-bind (_ _ _ _ minutes _) entry
-                  (setq total-minutes (+ total-minutes minutes))))
+                (cl-destructuring-bind (level _ _ _ minutes _) entry
+                  (setq total-minutes (+ total-minutes
+                                         (if (= level 1)
+                                             minutes
+                                           0)))))
               clock-data
               0))
 
