@@ -106,7 +106,7 @@ Based on `org-clock-report'."
               files
               '()))
 
-(defun clocktable-by-category--insert-row (category entries merge-duplicate-headlines)
+(defun clocktable-by-category--insert-category (category entries merge-duplicate-headlines)
   "Insert a row of ENTRIES for CATEGORY.
 
 - ENTRIES: List of entries with CATEGORY; see `org-clock-get-table-data'"
@@ -250,9 +250,9 @@ See `org-clocktable-write-default'."
          (merge-duplicate-headlines (plist-get params :merge-duplicate-headlines))
          (categories (hash-table-keys entries-hash)))
     (dolist (category categories)
-      (clocktable-by-category--insert-row category
-                                          (gethash category entries-hash)
-                                          merge-duplicate-headlines))
+      (clocktable-by-category--insert-category category
+                                               (gethash category entries-hash)
+                                               merge-duplicate-headlines))
     (save-excursion
       (let ((duration (org-duration-from-minutes (clocktable-by-category--sum-durations clock-data))))
         (re-search-backward "*Total time*")
