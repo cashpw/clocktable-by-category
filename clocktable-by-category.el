@@ -106,6 +106,18 @@ Based on `org-clock-report'."
               files
               '()))
 
+(defun clocktable-by-category--insert-row (level headline minutes)
+  "Insert a single row into the clocktable.
+
+- LEVEL: The level of the event
+- HEADLINE: Headline text
+- MINUTES: Duration in minutes"
+  (let ((indent (org-clocktable-indent-string level))
+        (shift-cell (clocktable-by-category--shift-cell level))
+        (duration (org-duration-from-minutes minutes)))
+    (insert (s-lex-format "| |${indent}${headline} | ${shift-cell} ${duration} |\n"))))
+
+
 (defun clocktable-by-category--insert-category (category entries merge-duplicate-headlines)
   "Insert a row of ENTRIES for CATEGORY.
 
@@ -129,17 +141,15 @@ Based on `org-clock-report'."
                                            0
                                            entries)))
               (setq total (+ total minutes))
-              (let ((indent (org-clocktable-indent-string level))
-                    (shift-cell (clocktable-by-category--shift-cell level))
-                    (duration (org-duration-from-minutes minutes)))
-                (insert (s-lex-format "| |${indent}${headline} | ${shift-cell} ${duration} |\n"))))))
+              (clocktable-by-category--insert-row level
+                                                  headline
+                                                  minutes))))
       (cl-dolist (entry entries)
         (cl-destructuring-bind (level headline _ _ minutes _) entry
           (setq total (+ total minutes))
-          (let ((indent (org-clocktable-indent-string level))
-                (shift-cell (clocktable-by-category--shift-cell level))
-                (duration (org-duration-from-minutes minutes)))
-            (insert (s-lex-format "| |${indent}${headline} | ${shift-cell} ${duration} |\n"))))))
+          (clocktable-by-category--insert-row level
+                                              headline
+                                              minutes))))
     (save-excursion
       (let ((duration (org-duration-from-minutes total)))
         (re-search-backward "*Category time*")
