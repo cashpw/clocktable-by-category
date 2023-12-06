@@ -191,7 +191,7 @@ entries from `org-clock-get-table-data'."
     entry-hash))
 
 (defun clocktable-by-category--sum-durations (clock-data)
-  "Return the total minutes logged for all entries in CLOCK-DATA."
+  "Return the total minutes logged for all top-level (1) entries in CLOCK-DATA."
   (seq-reduce (lambda (total-minutes entry)
                 (cl-destructuring-bind (level _ _ _ minutes _) entry
                   (setq total-minutes (+ total-minutes
