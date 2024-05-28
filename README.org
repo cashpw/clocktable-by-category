@@ -3,7 +3,7 @@
 Group clocktable entries by their =CATEGORY= property.
 
 #+begin_src org
-,#+BEGIN: clocktable-by-category :files-fn cashpw/agenda-with-archives :block "2023-11-13" :maxlevel 5
+,#+BEGIN: clocktable-by-category :files-fn your/function-that-returns-list-of-files :block "2023-11-13" :maxlevel 5 :mrege-duplicate-headlines
 |          |                                           |      <r> |      |
 | Category | Headline                                  | Time (h) |      |
 |----------+-------------------------------------------+----------+------|
@@ -14,8 +14,7 @@ Group clocktable entries by their =CATEGORY= property.
 |          | Confirm credit card payments went through |          | 0:04 |
 |----------+-------------------------------------------+----------+------|
 | Health   | *Category time*                           |   *1:42* |      |
-|          | Stretch 1                                 |          | 0:16 |
-|          | Stretch 2                                 |          | 0:14 |
+|          | Stretch                                   |          | 0:30 |
 |          | Brush teeth (morning)                     |          | 0:03 |
 |          | Shoulders                                 |          | 1:09 |
 |----------+-------------------------------------------+----------+------|
