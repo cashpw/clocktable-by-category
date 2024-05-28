@@ -56,13 +56,13 @@ TODO
 
 ** =:files=
 
-A literal list, or variable, of files to read. This replaces `:scope`.
+A literal list, or variable, of files to read. This replaces =:scope=.
 
 ** =:files-fn=
 
-A function which returns a list of files to read. This replaces `:scope`.
+A function which returns a list of files to read. This replaces =:scope=.
 
-For example, to replicate `:scope agenda-with-archives`:
+For example, to replicate =:scope agenda-with-archives=:
 
 #+begin_src emacs-lisp
 (defun your/agenda-with-archives ()
