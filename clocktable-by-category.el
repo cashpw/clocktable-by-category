@@ -179,7 +179,9 @@ entries from `org-clock-get-table-data'."
   (let ((entry-hash (make-hash-table :test 'equal)))
     (dolist (entry entries)
       (let* ((properties (nth 5 entry))
-             (category (cdr (or (assoc "CATEGORY"
+             (category (cdr (or (assoc "ARCHIVE_CATEGORY"
+                                       properties)
+                                (assoc "CATEGORY"
                                        properties)
                                 ("CATEGORY" . nil))))
              (entries (gethash category
@@ -256,7 +258,8 @@ See `org-clocktable-write-default'."
   (clocktable-by-category--insert-caption params)
   (clocktable-by-category--insert-table-headings)
   ;; We can't sort by categories unless we collect the categories.
-  (plist-put params :properties '("CATEGORY"))
+  (plist-put params :properties '("CATEGORY"
+                                  "ARCHIVE_CATEGORY"))
   (let* ((files (clocktable-by-category--get-files params))
          (clock-data (clocktable-by-category--get-clock-data files
                                                              params))
