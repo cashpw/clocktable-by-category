@@ -106,7 +106,18 @@ Based on `org-clock-report'."
               files
               '()))
 
-(defun clocktable-by-category--insert-row (category entries merge-duplicate-headlines)
+(defun clocktable-by-category--insert-row (level headline minutes)
+  "Insert a single row into the clocktable.
+
+- LEVEL: The level of the event
+- HEADLINE: Headline text
+- MINUTES: Duration in minutes"
+  (let ((indent (org-clocktable-indent-string level))
+        (shift-cell (clocktable-by-category--shift-cell level))
+        (duration (org-duration-from-minutes minutes)))
+    (insert (s-lex-format "| |${indent}${headline} | ${shift-cell} ${duration} |\n"))))
+
+(defun clocktable-by-category--insert-category (category entries merge-duplicate-headlines)
   "Insert a row of ENTRIES for CATEGORY.
 
 - ENTRIES: List of entries with CATEGORY; see `org-clock-get-table-data'"
@@ -128,18 +139,18 @@ Based on `org-clock-report'."
                                                 minutes))
                                            0
                                            entries)))
-              (setq total (+ total minutes))
-              (let ((indent (org-clocktable-indent-string level))
-                    (shift-cell (clocktable-by-category--shift-cell level))
-                    (duration (org-duration-from-minutes minutes)))
-                (insert (s-lex-format "| |${indent}${headline} | ${shift-cell} ${duration} |\n"))))))
+              (when (= level 1)
+                (setq total (+ total minutes)))
+              (clocktable-by-category--insert-row level
+                                                  headline
+                                                  minutes))))
       (cl-dolist (entry entries)
         (cl-destructuring-bind (level headline _ _ minutes _) entry
-          (setq total (+ total minutes))
-          (let ((indent (org-clocktable-indent-string level))
-                (shift-cell (clocktable-by-category--shift-cell level))
-                (duration (org-duration-from-minutes minutes)))
-            (insert (s-lex-format "| |${indent}${headline} | ${shift-cell} ${duration} |\n"))))))
+          (when (= level 1)
+            (setq total (+ total minutes)))
+          (clocktable-by-category--insert-row level
+                                              headline
+                                              minutes))))
     (save-excursion
       (let ((duration (org-duration-from-minutes total)))
         (re-search-backward "*Category time*")
@@ -180,10 +191,13 @@ entries from `org-clock-get-table-data'."
     entry-hash))
 
 (defun clocktable-by-category--sum-durations (clock-data)
-  "Return the total minutes logged for all entries in CLOCK-DATA."
+  "Return the total minutes logged for all top-level (1) entries in CLOCK-DATA."
   (seq-reduce (lambda (total-minutes entry)
-                (cl-destructuring-bind (_ _ _ _ minutes _) entry
-                  (setq total-minutes (+ total-minutes minutes))))
+                (cl-destructuring-bind (level _ _ _ minutes _) entry
+                  (setq total-minutes (+ total-minutes
+                                         (if (= level 1)
+                                             minutes
+                                           0)))))
               clock-data
               0))
 
@@ -250,9 +264,9 @@ See `org-clocktable-write-default'."
          (merge-duplicate-headlines (plist-get params :merge-duplicate-headlines))
          (categories (hash-table-keys entries-hash)))
     (dolist (category categories)
-      (clocktable-by-category--insert-row category
-                                          (gethash category entries-hash)
-                                          merge-duplicate-headlines))
+      (clocktable-by-category--insert-category category
+                                               (gethash category entries-hash)
+                                               merge-duplicate-headlines))
     (save-excursion
       (let ((duration (org-duration-from-minutes (clocktable-by-category--sum-durations clock-data))))
         (re-search-backward "*Total time*")
