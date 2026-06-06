@@ -106,24 +106,29 @@ Based on `org-clock-report'."
               files
               '()))
 
-(defun clocktable-by-category--insert-row (level headline minutes)
+(defun clocktable-by-category--insert-row (level headline minutes &optional category)
   "Insert a single row into the clocktable.
 
 - LEVEL: The level of the event
 - HEADLINE: Headline text
-- MINUTES: Duration in minutes"
+- MINUTES: Duration in minutes
+- CATEGORY: Optional category name to display in the first column"
   (let ((indent (org-clocktable-indent-string level))
         (shift-cell (clocktable-by-category--shift-cell level))
-        (duration (org-duration-from-minutes minutes)))
-    (insert (s-lex-format "| |${indent}${headline} | ${shift-cell} ${duration} |\n"))))
+        (duration (org-duration-from-minutes minutes))
+        (cat-str (or category "")))
+    (insert (s-lex-format "| ${cat-str} |${indent}${headline} | ${shift-cell} ${duration} |\n"))))
 
-(defun clocktable-by-category--insert-category (category entries merge-duplicate-headlines)
+(defun clocktable-by-category--insert-category (category entries merge-duplicate-headlines &optional omit-category-time)
   "Insert a row of ENTRIES for CATEGORY.
 
-- ENTRIES: List of entries with CATEGORY; see `org-clock-get-table-data'"
+- ENTRIES: List of entries with CATEGORY; see `org-clock-get-table-data'
+- OMIT-CATEGORY-TIME: If non-nil, omit the summary row and put category on the first detail row."
   (insert "|--\n")
-  (insert (s-lex-format "| ${category} | *Category time* |\n"))
-  (let ((total 0))
+  (unless omit-category-time
+    (insert (s-lex-format "| ${category} | *Category time* |\n")))
+  (let ((total 0)
+        (cat-to-insert (when omit-category-time category)))
     (if merge-duplicate-headlines
         (let ((entries-by-headline (-group-by (lambda (entry)
                                                 (cl-destructuring-bind (_ headline _ _ _ _) entry
@@ -143,20 +148,25 @@ Based on `org-clock-report'."
                 (setq total (+ total minutes)))
               (clocktable-by-category--insert-row level
                                                   headline
-                                                  minutes))))
+                                                  minutes
+                                                  cat-to-insert)
+              (setq cat-to-insert nil))))
       (cl-dolist (entry entries)
         (cl-destructuring-bind (level headline _ _ minutes _) entry
           (when (= level 1)
             (setq total (+ total minutes)))
           (clocktable-by-category--insert-row level
                                               headline
-                                              minutes))))
-    (save-excursion
-      (let ((duration (org-duration-from-minutes total)))
-        (re-search-backward "*Category time*")
-        (org-table-next-field)
-        (org-table-blank-field)
-        (insert (s-lex-format "*${duration}*")))))
+                                              minutes
+                                              cat-to-insert)
+          (setq cat-to-insert nil))))
+    (unless omit-category-time
+      (save-excursion
+        (let ((duration (org-duration-from-minutes total)))
+          (re-search-backward "*Category time*")
+          (org-table-next-field)
+          (org-table-blank-field)
+          (insert (s-lex-format "*${duration}*"))))))
   (org-table-align))
 
 (defun clocktable-by-category--get-categories (clock-data-entries)
@@ -265,11 +275,19 @@ See `org-clocktable-write-default'."
                                                              params))
          (entries-hash (clocktable-by-category--get-entries-by-category-hash clock-data))
          (merge-duplicate-headlines (plist-get params :merge-duplicate-headlines))
-         (categories (hash-table-keys entries-hash)))
-    (dolist (category categories)
+         (omit-category-time (plist-get params :omit-category-time))
+         (categories (hash-table-keys entries-hash))
+         ;; Always sort categories alphabetically (A-Z) by default.
+         ;; TODO: Support standard Org-mode `:sort` parameter to allow:
+         ;; - Numerical sorting (?n/?N) and Descending alphabetical (?A) on Column 1.
+         ;; - Sorting by Column 3 (Time) to order categories by total time spent.
+         ;; - Nested sorting (sorting entries within each category).
+         (sorted-categories (-sort (lambda (a b) (string< (downcase a) (downcase b))) categories)))
+    (dolist (category sorted-categories)
       (clocktable-by-category--insert-category category
                                                (gethash category entries-hash)
-                                               merge-duplicate-headlines))
+                                               merge-duplicate-headlines
+                                               omit-category-time))
     (save-excursion
       (let ((duration (org-duration-from-minutes (clocktable-by-category--sum-durations clock-data))))
         (re-search-backward "*Total time*")
